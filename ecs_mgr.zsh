@@ -5,7 +5,7 @@
 # Author: Bret Ellis
 
 # This script is used to manage ECS clusters/services
-# The script uses the AWS CLI and jq to interact with ECS.
+# The script uses the AWS CLI and jq to interact with the ECS services.
 # It can:
 #   - list all services in a cluster
 #   - list all tasks for a service in a cluster
@@ -17,7 +17,7 @@
 #   - stop all services in a cluster
 #
 # Defaults:
-#  - region: us-east-1 (valid values: us-east-1, sa-east-1, us-west-2)
+#  - region: us-east-1
 #  - cluster: none
 #  - service: none
 #  - debug: false
@@ -190,11 +190,12 @@ check_dependencies
 
 parse_args "$@"
 
-if [[ region != 'us-east-1' && region != 'sa-east-1' && region != 'us-west-2' ]] ; then
+valid_regions=('us-east-1' 'sa-east-1' 'us-west-2')
+if [[ ! ${valid_regions[(r)$region]} ]]; then
   region='us-east-1'
 fi
 
-if [[ -z $region || -z $cluster || -z $execute ]] ; then
+if [[ -z $cluster || -z $execute ]]; then
   usage
   exit 1
 fi
@@ -207,16 +208,19 @@ if [[ $debug == 'true' ]]; then
   echo "execute : $execute"
 fi
 
+
 case $execute in
   list_services|start_all|stop_all)
     $execute
   ;;
 
   list_tasks|list_task_arns|list_all_task_arns|start|stop)
-    if [[ -z $cluster_service ]]; then
-      echo '[ERROR] no service specified as arg. need one of -s|--service <service>'
-      usage
-      exit 99
+    if [[ ! $execute == 'list_all_task_arns' ]]; then
+      if [[ -z $cluster_service ]]; then
+        echo '[ERROR] no service specified as arg. need one of -s|--service <service>'
+        usage
+        exit 99
+      fi
     fi
     $execute
   ;;
